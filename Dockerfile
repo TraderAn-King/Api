@@ -1,20 +1,20 @@
-# استفاده از Node.js به عنوان پایه برای ساخت تصویر Docker
-FROM node:16
+# Use official Node.js LTS as the base image
+FROM node:lts
 
-# تنظیم دایرکتوری کاری
-WORKDIR /usr/src/app
+# Set the working directory inside the container
+WORKDIR /app
 
-# کپی کردن فایل‌های package.json و package-lock.json برای نصب وابستگی‌ها
+# Copy package.json and package-lock.json to the container
 COPY package*.json ./
 
-# نصب وابستگی‌ها
+# Install dependencies
 RUN npm install
 
-# کپی کردن بقیه فایل‌های پروژه به دایرکتوری کاری
+# Copy the entire project to the container
 COPY . .
 
-# اعلام پورت مورد استفاده توسط سرور
+# Expose the port the app runs on
 EXPOSE 3000
 
-# دستور برای اجرای سرور Node.js
-CMD ["node", "server.js"]
+# Start the app
+CMD ["npm", "start"]

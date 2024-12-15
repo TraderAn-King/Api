@@ -1,42 +1,35 @@
-const express = require('express');
-const axios = require('axios');
-const ytdl = require('ytdl-core');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+const express = require("express");
+const ytdl = require("ytdl-core");
 
 const app = express();
-const port = 3000;
 
-// تنظیمات میانه‌افزار
-app.use(cors());
-app.use(bodyParser.json());
+// Serve static files (HTML/CSS)
+app.use(express.static("public"));
 
-// صفحه اصلی API
-app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: __dirname });
-});
+// YouTube Download API
+app.get("/api/download", async (req, res) => {
+  const { url, format } = req.query;
 
-// API دانلود ویدیو
-app.get('/api/downloader', async (req, res) => {
-  const url = req.query.url;
-  if (!url) {
-    return res.status(400).json({ error: 'No URL provided' });
+  if (!url || !ytdl.validateURL(url)) {
+    return res.status(400).send({ error: "Invalid YouTube URL" });
   }
 
   try {
-    const info = await ytdl.getInfo(url);
-    res.json({
-      status: 200,
-      title: info.videoDetails.title,
-      image: info.videoDetails.thumbnails[0].url,
-      download_url: ytdl.getDownloadURL(url)
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch video info' });
+    const title = (await ytdl.getBasicInfo(url)).videoDetails.title;
+    const cleanTitle = title.replace(/[^a-zA-Z0-9 ]/g, "");
+
+    res.header("Content-Disposition", `attachment; filename="${cleanTitle}.${format}"`);
+
+    if (format === "mp3") {
+      ytdl(url, { filter: "audioonly" }).pipe(res);
+    } else {
+      ytdl(url, { format: "mp4" }).pipe(res);
+    }
+  } catch (err) {
+    res.status(500).send({ error: "Failed to download video" });
   }
 });
 
-// شروع سرور
-app.listen(port, () => {
-  console.log(`API running on http://localhost:${port}`);
-});
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
